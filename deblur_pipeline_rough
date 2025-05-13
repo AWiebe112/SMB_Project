@@ -1,19 +1,19 @@
 YEAR="SMB"
 STUDY="SMB_2024" # for each study, the name is different
 ### need to collect the info about primer pair from the literature
-primer_f1="ACACTCTTTCCCTACACGACGCTCTTCCGATCTGTGCCAGCMGCCGCGGTAA" ### forward pri                                                                             mer
+primer_f1="ACACTCTTTCCCTACACGACGCTCTTCCGATCTGTGCCAGCMGCCGCGGTAA" ### forward primer
 primer_f2="ACACTCTTTCCCTACACGACGCTCTTCCGATCTTGTGCCAGCMGCCGCGGTAA"
 primer_f3="ACACTCTTTCCCTACACGACGCTCTTCCGATCTACGTGCCAGCMGCCGCGGTAA"
 primer_f4="ACACTCTTTCCCTACACGACGCTCTTCCGATCTCAAGTGCCAGCMGCCGCGGTAA"
-primer_r1="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTGGACTACHVGGGTWTCTAAT" ### reverse p                                                                             rimer
+primer_r1="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTGGACTACHVGGGTWTCTAAT" ### reverse primer
 primer_r2="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTTGGACTACHVGGGTWTCTAAT"
 primer_r3="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTACGGACTACHVGGGTWTCTAAT"
 primer_r4="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCATGGACTACHVGGGTWTCTAAT"
 
 
 # 2. processing the raw reads
-### 2.1 fastqc, for checking the quality of reads, and use multiqc for visualiza                                                                             tion
-#multiqc ./data/2024/qiime2_result/$STUDY/fastqc_out -o ./data/2024/qiime2_resul                                                                             t/$STUDY/
+### 2.1 fastqc, for checking the quality of reads, and use multiqc for visualization
+#multiqc ./data/2024/qiime2_result/$STUDY/fastqc_out -o ./data/2024/qiime2_result/$STUDY/
 
 
 
@@ -27,10 +27,10 @@ primer_r4="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCATGGACTACHVGGGTWTCTAAT"
 
 #qiime demux summarize \
  #           --i-data ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
-  #          --o-visualization ./data/$YEAR/qiime2_result/$STUDY/reads_summary.q                                                                             zv
-#### trim primers using cutadapt, can also use for trimming to the same region s                                                                             uch as V4, just need a bit adjustment of codes
+#          --o-visualization ./data/$YEAR/qiime2_result/$STUDY/reads_summary.qzv
+#### trim primers using cutadapt, can also use for trimming to the same region such as V4, just need a bit adjustment of codes
 #qiime cutadapt trim-paired \
- #           --i-demultiplexed-sequences ./data/$YEAR/qiime2_result/$STUDY/reads                                                                             .qza \
+ #           --i-demultiplexed-sequences ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
   #          --p-cores 12 \
    #         --p-front-f $primer_f1 \
     #        --p-front-f $primer_f2 \
@@ -42,11 +42,11 @@ primer_r4="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCATGGACTACHVGGGTWTCTAAT"
           #  --p-front-r $primer_r4 \
            # --p-discard-untrimmed \
             #--p-no-indels \
-            #--o-trimmed-sequences ./data/2024/qiime2_result/$STUDY/reads_trimme                                                                             d.qza
+            #--o-trimmed-sequences ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza
 
 #qiime demux summarize \
  #           --i-data ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza \
-  #          --o-visualization ./data/2024/qiime2_result/$STUDY/reads_trimmed_su                                                                             mmary.qzv
+  #          --o-visualization ./data/2024/qiime2_result/$STUDY/reads_trimmed_summary.qzv
 
 
   if [ ! -d ./data/$YEAR/qiime2_result/$STUDY/deblur ]; then
@@ -90,6 +90,10 @@ qiime deblur denoise-16S \
             --p-min-reads 10 \
             --output-dir ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise
 
+
+
+
+
 # summarize
 qiime deblur visualize-stats \
    --i-deblur-stats ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/stats.qza \
@@ -104,4 +108,43 @@ qiime feature-table tabulate-seqs \
    --i-data ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/representative_sequences.qza \
    --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/deblur_rep-seqs.qzv
 
+###### After merging, now we need to annotate the merged dataset
 
+### 1. classify the features
+qiime feature-classifier classify-sklearn \
+            --i-reads /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs.qza \
+            --i-classifier /data/zool-temp-micro/pemb6000/chap1/ref_alignments/silva-138-99-nb-classifier.qza \
+            --p-n-jobs 16 \
+            --output-dir /data/zool-temp-micro/pemb6000/chap1/taxonomy  &&
+
+qiime metadata tabulate \
+  --m-input-file /data/zool-temp-micro/pemb6000/chap1/taxonomy/classification.qza \
+  --o-visualization /data/zool-temp-micro/pemb6000/chap1/taxonomy.qzv
+#here can visualize rep-seq-dada2.qzv and choose ~5 ASVs to BLAST and to validate taxonomic classification.
+
+### 2. filter out rare ASVs/potential contaminants and those not classified at kingdom level (or lower level)
+qiime taxa filter-table \
+            --i-table /data/zool-temp-micro/pemb6000/chap1/merged_table.qza \
+            --i-taxonomy /data/zool-temp-micro/pemb6000/chap1/taxonomy/classification.qza \
+            --p-include d__ \
+            --p-exclude mitochondria,chloroplast,eukaryota \
+            --o-filtered-table /data/zool-temp-micro/pemb6000/chap1/table_filt_decomtam.qza
+
+qiime feature-table filter-seqs \
+   --i-data /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs.qza \
+   --i-table /data/zool-temp-micro/pemb6000/chap1/table_filt_decomtam.qza \
+   --o-filtered-data /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs_final.qza
+
+
+### 3. generate a phylogenetic tree
+qiime fragment-insertion sepp \
+   --i-representative-sequences /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs_final.qza \
+   --i-reference-database /data/zool-temp-micro/pemb6000/chap1/sepp-refs-gg-13-8.qza \
+   --o-tree /data/zool-temp-micro/pemb6000/chap1/asvs-tree.qza \
+   --o-placements /data/zool-temp-micro/pemb6000/chap1/insertion-placements.qza \
+   --p-threads 16
+
+##export the tree
+qiime tools export \
+  --input-path /data/zool-temp-micro/pemb6000/chap1/asvs-tree.qza \
+  --output-path /data/zool-temp-micro/pemb6000/chap1/saiga
