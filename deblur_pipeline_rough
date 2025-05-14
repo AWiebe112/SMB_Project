@@ -80,7 +80,7 @@ qiime demux summarize \
 ### Now we process merged reads, whether merged from pair-end or single
 ###trim and deblur, the trim_length is mannualy decided from visualizing reads_trimmed_joined_filt_summary.qzv, trim at the base when quality drops a lot but you don't want to lose too many reads
 ### 3. deblur for generating ASV tables
-trim_length = "XXX"
+trim_length = "250"
 qiime deblur denoise-16S \
             --i-demultiplexed-seqs ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined_filt.qza \
             --p-trim-length $trim_length \
