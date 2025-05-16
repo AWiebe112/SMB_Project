@@ -1,0 +1,119 @@
+#!/bin/bash
+YEAR="2024"
+STUDY="SMB_2024" # for each study, the name is different
+### need to collect the info about primer pair from the literature
+primer_f1="ACACTCTTTCCCTACACGACGCTCTTCCGATCTGTGCCAGCMGCCGCGGTAA" ### forward primer
+primer_f2="ACACTCTTTCCCTACACGACGCTCTTCCGATCTTGTGCCAGCMGCCGCGGTAA"
+primer_f3="ACACTCTTTCCCTACACGACGCTCTTCCGATCTACGTGCCAGCMGCCGCGGTAA"
+primer_f4="ACACTCTTTCCCTACACGACGCTCTTCCGATCTCAAGTGCCAGCMGCCGCGGTAA"
+primer_r1="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTGGACTACHVGGGTWTCTAAT" ### reverse primer
+primer_r2="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTTGGACTACHVGGGTWTCTAAT"
+primer_r3="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTACGGACTACHVGGGTWTCTAAT"
+primer_r4="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCATGGACTACHVGGGTWTCTAAT"
+
+
+# 2. processing the raw reads
+### 2.1 fastqc, for checking the quality of reads, and use multiqc for visualization
+#multiqc ./data/2024/qiime2_result/$STUDY/fastqc_out -o ./data/2024/qiime2_result/$STUDY/
+
+
+
+##  For paired-end data
+### 2.2 import data to qiime2 and trim primers (if there are any)
+#qiime tools import \
+ #           --type SampleData[PairedEndSequencesWithQuality] \
+  #          --input-path ./data/2024/16S/raw/ \
+   #         --output-path ./data/2024/qiime2_result/$STUDY/reads.qza \
+    #        --input-format CasavaOneEightSingleLanePerSampleDirFmt
+
+#qiime demux summarize \
+ #           --i-data ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
+  #          --o-visualization ./data/$YEAR/qiime2_result/$STUDY/reads_summary.qzv
+#### trim primers using cutadapt, can also use for trimming to the same region such as V4, just need a bit adjustment of codes
+#qiime cutadapt trim-paired \
+ #           --i-demultiplexed-sequences ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
+  #          --p-cores 12 \
+   #         --p-front-f $primer_f1 \
+    #        --p-front-f $primer_f2 \
+     #       --p-front-f $primer_f3 \
+      #      --p-front-f $primer_f4 \
+       #     --p-front-r $primer_r1 \
+        #    --p-front-r $primer_r2 \
+         #   --p-front-r $primer_r3 \
+          #  --p-front-r $primer_r4 \
+           # --p-discard-untrimmed \
+            #--p-no-indels \
+            #--o-trimmed-sequences ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza
+
+#qiime demux summarize \
+ #           --i-data ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza \
+  #          --o-visualization ./data/2024/qiime2_result/$STUDY/reads_trimmed_summary.qzv
+
+
+#  if [ ! -d ./data/$YEAR/qiime2_result/$STUDY/deblur ]; then
+#        mkdir ./data/$YEAR/qiime2_result/$STUDY/
+#fi
+
+### 2.3 join pair-end reads using vsearch
+#qiime vsearch merge-pairs \
+ #           --i-demultiplexed-seqs ./data/$YEAR/qiime2_result/$STUDY/reads_trimmed.qza \
+  #          --o-merged-sequences ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined.qza \
+#           --o-unmerged-sequences ./data/$YEAR/qiime2_result/$STUDY/deblur/unmerged_reads_trimmed_joined.qza \
+#           --verbose \
+#           --p-allowmergestagger
+#qiime demux summarize \
+#            --i-data ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined.qza \
+ #           --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined_summary.qzv
+
+#### filter out low-quality reads
+#qiime quality-filter q-score \
+ #           --i-demux ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined.qza \
+  #          --o-filter-stats ./data/$YEAR/qiime2_result/$STUDY/deblur/filt_stats.qza \
+   #         --o-filtered-sequences ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined_filt.qza
+
+   # summarize, It is a good idea at this point just to verify that there haven't been any substantial losses of reads, before going through the whole ASV process, at either the joining or quality-filtering steps above:
+#qiime demux summarize \
+ #           --i-data ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined_filt.qza \
+  #          --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined_filt_summary.qzv
+
+
+### Now we process merged reads, whether merged from pair-end or single
+###trim and deblur, the trim_length is mannualy decided from visualizing reads_trimmed_joined_filt_summary.qzv, trim at the base when quality drops a lot but you don't want to lose too many reads
+### 3. deblur for generating ASV tables
+#trim_length="250"
+
+#qiime deblur denoise-16S \
+ #           --i-demultiplexed-seqs ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined_filt.qza \
+  #          --p-trim-length 250 \
+   #         --p-left-trim-len 0 \
+    #        --p-sample-stats \
+#           --o-representative-sequences representative-sequences.qza \
+#           --o-table table.qza \
+#           --o-stats denoising-stats.qza
+#           --p-jobs-to-start 16 \
+ #           --p-min-reads 10 \
+  #          --output-dir ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise
+
+
+  # summarize
+ # qiime deblur visualize-stats \
+#            --i-deblur-stats ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/denoising-stats.qza \
+#               --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/deblur-stats.qzv
+
+# qiime feature-table summarize \
+#          --i-table ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/table.qza \
+#            --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/deblur_table_summary.qzv
+
+#qiime feature-table tabulate-seqs \
+ #         --i-data ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/representative-sequences.qza \
+  #   --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/deblur_rep-seqs.qzv
+
+  ###### After merging, now we need to annotate the merged dataset
+
+  ### 1. classify the features
+
+
+
+
+
+
