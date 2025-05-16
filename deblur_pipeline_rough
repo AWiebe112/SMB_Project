@@ -90,19 +90,18 @@ qiime deblur denoise-16S \
             --p-min-reads 10 \
             --output-dir ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise
 
-
-
+#Check there the files save to. Mine saved to scratch/aw112 so I copied them to the correct output folder before the next step.
 
 
 # summarize
 qiime deblur visualize-stats \
-   --i-deblur-stats ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/stats.qza \
+   --i-deblur-stats ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/denoising-stats.qza \
    --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/deblur-stats.qzv
 
 
 qiime feature-table summarize \
    --i-table ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/table.qza \
-   --o-visualization /data/zool-temp-micro/pemb6000/chap1/qiime2_result/$STUDY/deblur/denoise/deblur_table_summary.qzv
+   --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/deblur_table_summary.qzv
 
 qiime feature-table tabulate-seqs \
    --i-data ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/representative_sequences.qza \
@@ -110,41 +109,42 @@ qiime feature-table tabulate-seqs \
 
 ###### After merging, now we need to annotate the merged dataset
 
-### 1. classify the features
+  ### 1. classify the features
 qiime feature-classifier classify-sklearn \
-            --i-reads /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs.qza \
-            --i-classifier /data/zool-temp-micro/pemb6000/chap1/ref_alignments/silva-138-99-nb-classifier.qza \
-            --p-n-jobs 16 \
-            --output-dir /data/zool-temp-micro/pemb6000/chap1/taxonomy  &&
+                      --i-reads ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/representative-sequences.qza \
+                      --i-classifier ./data/$YEAR/chap1/ref_alignments/silva-138-99-515-806-nb-classifier.qza \
+                      --p-n-jobs 16 \
+                      --output-dir ./data/$YEAR/chap1/taxonomy  &&
 
-qiime metadata tabulate \
-  --m-input-file /data/zool-temp-micro/pemb6000/chap1/taxonomy/classification.qza \
-  --o-visualization /data/zool-temp-micro/pemb6000/chap1/taxonomy.qzv
-#here can visualize rep-seq-dada2.qzv and choose ~5 ASVs to BLAST and to validate taxonomic classification.
-
-### 2. filter out rare ASVs/potential contaminants and those not classified at kingdom level (or lower level)
-qiime taxa filter-table \
-            --i-table /data/zool-temp-micro/pemb6000/chap1/merged_table.qza \
-            --i-taxonomy /data/zool-temp-micro/pemb6000/chap1/taxonomy/classification.qza \
-            --p-include d__ \
-            --p-exclude mitochondria,chloroplast,eukaryota \
-            --o-filtered-table /data/zool-temp-micro/pemb6000/chap1/table_filt_decomtam.qza
-
-qiime feature-table filter-seqs \
-   --i-data /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs.qza \
-   --i-table /data/zool-temp-micro/pemb6000/chap1/table_filt_decomtam.qza \
-   --o-filtered-data /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs_final.qza
+                              qiime metadata tabulate \
+                                            --m-input-file ./data/$YEAR/chap1/taxonomy/classification.qza \
+                                            --o-visualization ./data/$YEAR/chap1/taxonomy.qzv
+#Here can visualize rep-seq-dada2.qzv and choose ~5 ASVs to BLAST and to validate taxonomic classification.
 
 
-### 3. generate a phylogenetic tree
-qiime fragment-insertion sepp \
-   --i-representative-sequences /data/zool-temp-micro/pemb6000/chap1/merged_rep-seqs_final.qza \
-   --i-reference-database /data/zool-temp-micro/pemb6000/chap1/sepp-refs-gg-13-8.qza \
-   --o-tree /data/zool-temp-micro/pemb6000/chap1/asvs-tree.qza \
-   --o-placements /data/zool-temp-micro/pemb6000/chap1/insertion-placements.qza \
-   --p-threads 16
+ ### 2. filter out rare ASVs/potential contaminants and those not classified at kingdom level (or lower level)
+  qiime taxa filter-table \
+                      --i-table ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/table.qza \
+                      --i-taxonomy ./data/$YEAR/chap1/taxonomy/classification.qza \
+                      --p-include d__ \
+                      --p-exclude mitochondria,chloroplast,eukaryota \
+                      --o-filtered-table ./data/$YEAR/chap1/table_filt_decomtam.qza
 
-##export the tree
-qiime tools export \
-  --input-path /data/zool-temp-micro/pemb6000/chap1/asvs-tree.qza \
-  --output-path /data/zool-temp-micro/pemb6000/chap1/saiga
+  qiime feature-table filter-seqs \
+                      --i-data ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/representative-sequences.qza \
+                      --i-table ./data/$YEAR/chap1/table_filt_decomtam.qza \
+                      --o-filtered-data ./data/$YEAR/chap1/rep-seqs_final.qza
+
+
+  ### 3. generate a phylogenetic tree
+  qiime fragment-insertion sepp \
+                      --i-representative-sequences ./data/$YEAR/chap1/rep-seqs_final.qza \
+                      --i-reference-database ./data/$YEAR/chap1/sepp-refs-gg-13-8.qza \
+                      --o-tree ./data/$YEAR/chap1/asvs-tree.qza \
+                      --o-placements ./data/$YEAR/chap1/insertion-placements.qza \
+                      --p-threads 16
+
+ ##export the tree
+  qiime tools export \
+                      --input-path ./data/$YEAR/chap1/asvs-tree.qza \
+                      --output-path ./data/$YEAR/chap1/saiga
