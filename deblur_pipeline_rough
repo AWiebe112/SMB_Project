@@ -136,6 +136,8 @@ qiime feature-classifier classify-sklearn \
                       --o-filtered-data ./data/$YEAR/chap1/rep-seqs_final.qza
 
 
+###to here
+
   ### 3. generate a phylogenetic tree
   qiime fragment-insertion sepp \
                       --i-representative-sequences ./data/$YEAR/chap1/rep-seqs_final.qza \
