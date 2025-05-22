@@ -112,15 +112,14 @@ qiime feature-table tabulate-seqs \
   ### 1. classify the features
 qiime feature-classifier classify-sklearn \
                       --i-reads ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise/representative-sequences.qza \
-                      --i-classifier ./data/$YEAR/chap1/ref_alignments/silva-138-99-515-806-nb-classifier.qza \
-                      --p-n-jobs 16 \
+                      --i-classifier ./data/$YEAR/chap1/ref_alignments/classifier-V4.qza \
+                      --p-n-jobs 4 \
                       --output-dir ./data/$YEAR/chap1/taxonomy  &&
 
-                              qiime metadata tabulate \
+                             qiime metadata tabulate \
                                             --m-input-file ./data/$YEAR/chap1/taxonomy/classification.qza \
                                             --o-visualization ./data/$YEAR/chap1/taxonomy.qzv
 #Here can visualize rep-seq-dada2.qzv and choose ~5 ASVs to BLAST and to validate taxonomic classification.
-
 
  ### 2. filter out rare ASVs/potential contaminants and those not classified at kingdom level (or lower level)
   qiime taxa filter-table \
