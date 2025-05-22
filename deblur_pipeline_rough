@@ -10,12 +10,11 @@ primer_r2="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTTGGACTACHVGGGTWTCTAAT"
 primer_r3="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTACGGACTACHVGGGTWTCTAAT"
 primer_r4="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCATGGACTACHVGGGTWTCTAAT"
 
+#1. Download raw reads --> for genome quebec use the aget script. DOn't change anything and it will prompt you to enter your username and password
 
 # 2. processing the raw reads
 ### 2.1 fastqc, for checking the quality of reads, and use multiqc for visualization
 multiqc ./data/2024/qiime2_result/$STUDY/fastqc_out -o ./data/2024/qiime2_result/$STUDY/
-
-
 
 ##  For paired-end data
 ### 2.2 import data to qiime2 and trim primers (if there are any)
@@ -28,6 +27,7 @@ qiime tools import \
 #qiime demux summarize \
           --i-data ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
           --o-visualization ./data/$YEAR/qiime2_result/$STUDY/reads_summary.qzv
+
 
 #### trim primers using cutadapt, can also use for trimming to the same region such as V4, just need a bit adjustment of codes
 qiime cutadapt trim-paired \
@@ -50,24 +50,22 @@ qiime demux summarize \
             --o-visualization ./data/2024/qiime2_result/$STUDY/reads_trimmed_summary.qzv
 
 
+### 2.3 join pair-end reads using vsearch
   if [ ! -d ./data/$YEAR/qiime2_result/$STUDY/deblur ]; then
         mkdir ./data/$YEAR/qiime2_result/$STUDY/
 fi
 
-### 2.3 join pair-end reads using vsearch
 qiime vsearch merged-pairs \
             --i-demultiplexed-seqs ./data/$YEAR/qiime2_result/$STUDY/reads_trimmed.qza \
             --o-merged-sequences ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined.qza \
             --verbose \
             --p-allowmergestagger
-# summarize, It is a good idea at this point just to verify that there haven't been any substantial losses of reads, before going through the whole ASV process, at either the joining or quality-filtering steps above:
+# summarize the merged reads
 qiime demux summarize \
             --i-data ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined.qza \
             --o-visualization ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined_summary.qzv
 
-
-
-#### filter out low-quality reads
+# filter out low-quality reads
 qiime quality-filter q-score \
             --i-demux ./data/$YEAR/qiime2_result/$STUDY/deblur/reads_trimmed_joined.qza \
             --o-filter-stats ./data/$YEAR/qiime2_result/$STUDY/deblur/filt_stats.qza \
@@ -92,7 +90,6 @@ qiime deblur denoise-16S \
             --output-dir ./data/$YEAR/qiime2_result/$STUDY/deblur/denoise
 
 #Check there the files save to. Mine saved to scratch/aw112 so I copied them to the correct output folder before the next step.
-
 
 # summarize
 qiime deblur visualize-stats \
