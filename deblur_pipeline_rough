@@ -13,40 +13,41 @@ primer_r4="GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCTCATGGACTACHVGGGTWTCTAAT"
 
 # 2. processing the raw reads
 ### 2.1 fastqc, for checking the quality of reads, and use multiqc for visualization
-#multiqc ./data/2024/qiime2_result/$STUDY/fastqc_out -o ./data/2024/qiime2_result/$STUDY/
+multiqc ./data/2024/qiime2_result/$STUDY/fastqc_out -o ./data/2024/qiime2_result/$STUDY/
 
 
 
 ##  For paired-end data
 ### 2.2 import data to qiime2 and trim primers (if there are any)
-#qiime tools import \
- #           --type SampleData[PairedEndSequencesWithQuality] \
-  #          --input-path ./data/2024/16S/raw/ \
-   #         --output-path ./data/2024/qiime2_result/$STUDY/reads.qza \
-    #        --input-format CasavaOneEightSingleLanePerSampleDirFmt
+qiime tools import \
+            --type SampleData[PairedEndSequencesWithQuality] \
+            --input-path ./data/2024/16S/raw/ \
+            --output-path ./data/2024/qiime2_result/$STUDY/reads.qza \
+           --input-format CasavaOneEightSingleLanePerSampleDirFmt
 
 #qiime demux summarize \
- #           --i-data ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
-#          --o-visualization ./data/$YEAR/qiime2_result/$STUDY/reads_summary.qzv
+          --i-data ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
+          --o-visualization ./data/$YEAR/qiime2_result/$STUDY/reads_summary.qzv
+
 #### trim primers using cutadapt, can also use for trimming to the same region such as V4, just need a bit adjustment of codes
-#qiime cutadapt trim-paired \
- #           --i-demultiplexed-sequences ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
-  #          --p-cores 12 \
-   #         --p-front-f $primer_f1 \
-    #        --p-front-f $primer_f2 \
-     #       --p-front-f $primer_f3 \
-      #      --p-front-f $primer_f4 \
-       #     --p-front-r $primer_r1 \
-        #    --p-front-r $primer_r2 \
-         #   --p-front-r $primer_r3 \
-          #  --p-front-r $primer_r4 \
-           # --p-discard-untrimmed \
-            #--p-no-indels \
-            #--o-trimmed-sequences ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza
+qiime cutadapt trim-paired \
+            --i-demultiplexed-sequences ./data/$YEAR/qiime2_result/$STUDY/reads.qza \
+            --p-cores 12 \
+            --p-front-f $primer_f1 \
+            --p-front-f $primer_f2 \
+            --p-front-f $primer_f3 \
+            --p-front-f $primer_f4 \
+            --p-front-r $primer_r1 \
+            --p-front-r $primer_r2 \
+            --p-front-r $primer_r3 \
+            --p-front-r $primer_r4 \
+            --p-discard-untrimmed \
+            --p-no-indels \
+            --o-trimmed-sequences ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza
 
-#qiime demux summarize \
- #           --i-data ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza \
-  #          --o-visualization ./data/2024/qiime2_result/$STUDY/reads_trimmed_summary.qzv
+qiime demux summarize \
+            --i-data ./data/2024/qiime2_result/$STUDY/reads_trimmed.qza \
+            --o-visualization ./data/2024/qiime2_result/$STUDY/reads_trimmed_summary.qzv
 
 
   if [ ! -d ./data/$YEAR/qiime2_result/$STUDY/deblur ]; then
